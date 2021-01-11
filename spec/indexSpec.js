@@ -8,12 +8,17 @@ describe('agentIndexSpec', () => {
 
   beforeEach(done => {
     browser = new Browser({ waitDuration: '30s', loadCss: false });
-    done();
+
+    browser.visit('/', err => {
+      if (err) return done.fail(err);
+      done();
+    });
   });
 
   describe('interface', () => {
     it('shows a Subscribe button', done => {
-      done.fail();
+      browser.assert.element('#subscribe-button');
+      done();
     });
   });
 });
