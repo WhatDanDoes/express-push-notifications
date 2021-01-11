@@ -19,6 +19,7 @@
   "devDependencies": {
     "jasmine": "^3.6.3",
     "service-worker-mock": "^2.0.5",
+    "supertest": "^6.0.1",
     "zombie": "^6.1.4"
   }
 }
