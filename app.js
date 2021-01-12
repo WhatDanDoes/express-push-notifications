@@ -10,6 +10,30 @@ const subscribeRouter = require('./routes/subscribe');
 
 const app = express();
 
+/**
+ * Sessions
+ */
+const session = require('express-session');
+
+const sessionConfig = {
+  name: 'express-push-notifications',
+  secret: process.env.PRIVATE_VAPID_KEY, // This seemed convenient
+  resave: false,
+  saveUninitialized: false,
+  unset: 'destroy',
+  cookie: {
+    maxAge: 1000 * 60 * 60,
+  }
+};
+
+app.use(session(sessionConfig));
+
+/**
+ * Flash messages
+ */
+const flash = require('connect-flash');
+app.use(flash());
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
