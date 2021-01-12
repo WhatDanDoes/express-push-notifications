@@ -5,9 +5,51 @@
     <link rel='stylesheet' href='/stylesheets/style.css' />
   </head>
   <body>
+    <% include _partials/messages %>
     <h1><%= title %></h1>
-    <p>Howdy! This is a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API" target="_blank">push-notification</a> demo. It is my first foray into testing and leveraging <em>Service Workers</em>.</p>
+    <p>
+      Howdy! This is a
+      <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API" target="_blank">push-notification</a> demo.
+      It is my first foray into testing and leveraging <em>Service Workers</em>.
+    </p>
     <p>To receive notifications from this site, press the <em>Subscribe</em> button below:</p>
     <button id="subscribe-button">Subscribe</button>
+    <script>
+      const publicVapidKey = 'BDg8l9P_uXEbu2XT0qmCet4RndcAkKODMpnFIqs_E0lyTq5X-UJQ_CnHnbX6hR7AelzzRJLYY3gvAU2lKHNgMRo';
+
+console.log('navigator in Zombie--------');
+console.log(navigator);
+      if ('serviceWorker' in navigator) {
+        console.log('Service workers are supported');
+      }
+      else {
+        console.log('This browser does not support service workers');
+      }
+
+
+
+      document.getElementById('subscribe-button').addEventListener('click', async () => {
+        console.log('Subscribe clicked');
+
+        const registration = await navigator.serviceWorker.register('/worker.js', {scope: '/'});
+
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          // The `urlBase64ToUint8Array()` function is the same as in
+          // https://www.npmjs.com/package/web-push#using-vapid-key-for-applicationserverkey
+//          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+          applicationServerKey: publicVapidKey
+        });
+
+        await fetch('/subscribe', {
+          method: 'POST',
+          body: JSON.stringify(subscription),
+          headers: {
+            'content-type': 'application/json'
+          }
+        });
+      });
+
+    </script>
   </body>
 </html>
