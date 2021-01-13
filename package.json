@@ -20,10 +20,8 @@
   },
   "devDependencies": {
     "atob": "^2.1.2",
-    "jasmine": "^3.6.3",
     "service-worker-mock": "^2.0.5",
     "supertest": "^6.0.1",
-    "webidl-conversions": "^6.1.0",
-    "zombie": "^6.1.4"
+    "webidl-conversions": "^6.1.0"
   }
 }
