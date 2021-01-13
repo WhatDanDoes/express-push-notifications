@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node app.js",
-    "test": "npx jest"
+    "test": "jest"
   },
   "dependencies": {
     "connect-flash": "^0.1.1",
