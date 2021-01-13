@@ -5,9 +5,6 @@ const Browser = require('zombie');
 const webpush = require('web-push');
 const conversions = require("webidl-conversions");
 
-const makeServiceWorkerEnv = require('service-worker-mock');
-
-
 const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 Browser.localhost('example.com', PORT);
 const app = require('../app');
@@ -134,14 +131,6 @@ describe('subscribeSpec', () => {
 //    });
 
     beforeEach(done => {
-//      Object.assign(
-//        global,
-//        makeServiceWorkerEnv(),
-//  //      makeFetchMock(),
-//        // If you're using sinon ur similar you'd probably use below instead of makeFetchMock
-//        // fetch: sinon.stub().returns(Promise.resolve())
-//      );
-
       browser = new Browser({ waitDuration: '30s', loadCss: false });
 
       const workerEnv = makeServiceWorkerEnv();
@@ -149,13 +138,50 @@ console.log(workerEnv);
 
 
       browser.visit('/', err => {
-      browser._eventLoop.active.navigator.serviceWorker = 'What should this be?';
-console.log('browser---------');
+        browser._eventLoop.active.navigator.serviceWorker = 'What should this be?';
+console.log('browser first---------');
 console.log(browser._eventLoop.active.navigator);
 
-        if (err) return done.fail(err);
-        done();
+
+        browser.visit('/', err => {
+console.log('browser second---------');
+console.log(browser._eventLoop.active.navigator);
+
+
+          if (err) return done.fail(err);
+          done();
+        });
       });
+
+
+//      /**
+//       * The browser doesn't have an `_eventLoop` until it actually visits a
+//       * site.
+//       */
+//      browser.visit('/', err => {
+//
+//        /**
+//         * With the `_eventLoop` property in place, I can now attach the mock
+//         * service worker stuff.
+//         */
+//        browser._eventLoop.active.navigator.serviceWorker = {...mockBrowserNavigator };
+//
+//        /**
+//         * No more `undefined` errors. Service worker mocks are in place
+//         */
+//        browser.visit('/', err => {
+//
+//console.log('browser second visit---------');
+//console.log(browser._eventLoop.active.navigator);
+//
+//
+//
+//          if (err) return done.fail(err);
+//          done();
+//        });
+//      });
+
+
     });
 
     afterEach(() => {
