@@ -45,7 +45,8 @@ router.post('/', function(req, res, next) {
 
   const payload = JSON.stringify({ message: 'You have successfully subscribed' });
 
-  console.log(subscription);
+  console.log('subscription');
+  console.log(JSON.stringify(subscription));
 
   webpush.sendNotification(subscription, payload).catch(error => {
     console.error(error);
