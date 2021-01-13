@@ -1,24 +1,24 @@
-//const Browser = require('zombie');
-const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001; 
-//Browser.localhost('example.com', PORT);
+const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 const app = require('../app');
 
 describe('index', () => {
-  let browser;
 
-//  beforeEach(done => {
-//    browser = new Browser({ waitDuration: '30s', loadCss: false });
-//
-//    browser.visit('/', err => {
-//      if (err) return done.fail(err);
-//      done();
-//    });
-//  });
+  afterAll(done => {
+    // 2021-1-13
+    //
+    // https://stackoverflow.com/a/14516195/1356582
+    //
+    // This needs to be closed, otherwise you get a `Jest did not exit one second after the test run has completed` error
+    app.close(done);
+  });
 
-//  describe('interface', () => {
-//    it('shows a Subscribe button', done => {
-//      browser.assert.element('#subscribe-button');
-//      done();
-//    });
-//  });
+  beforeEach(async () => {
+    await page.goto('http://localhost:3001');
+  });
+
+  describe('interface', () => {
+    it('shows a Subscribe button', async () => {
+      await expect(page).toMatchElement('#subscribe-button');
+    });
+  });
 });
