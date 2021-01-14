@@ -15,40 +15,116 @@
     <p>To receive notifications from this site, press the <em>Subscribe</em> button below:</p>
     <button id="subscribe-button">Subscribe</button>
     <script>
+
+      window.addEventListener('load', () => {
+        if ('serviceWorker' in navigator) {
+          console.log('Service workers are supported');
+        }
+        else {
+          console.log('This browser does not support service workers');
+        }
+
+        if ('PushManager' in window) {
+          console.log('Push API is supported');
+        }
+        else {
+          console.log('Push API is not supported');
+        }
+      });
+
       const publicVapidKey = 'BDg8l9P_uXEbu2XT0qmCet4RndcAkKODMpnFIqs_E0lyTq5X-UJQ_CnHnbX6hR7AelzzRJLYY3gvAU2lKHNgMRo';
-
-console.log('navigator in Zombie--------');
-console.log(navigator);
-      if ('serviceWorker' in navigator) {
-        console.log('Service workers are supported');
-      }
-      else {
-        console.log('This browser does not support service workers');
-      }
-
 
 
       document.getElementById('subscribe-button').addEventListener('click', async () => {
+//confirm('here is a confirm');
+//const permission = await window.Notification.requestPermission();
+        navigator.serviceWorker.register('/worker.js', {scope: '/'});
         console.log('Subscribe clicked');
+        navigator.serviceWorker.ready.then(registration => {;
+          console.log('serviceWorker ready');
 
-        const registration = await navigator.serviceWorker.register('/worker.js', {scope: '/'});
+//        //* 2021-1-14 https://github.com/bradtraversy/node_push_notifications/issues/1#issuecomment-389413687
+//        await 
+//
+          registration.pushManager.getSubscription().then(subscription => {
+            console.log('Attempted to retrieve subscription');
+            console.log(JSON.stringify(subscription));
 
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          // The `urlBase64ToUint8Array()` function is the same as in
-          // https://www.npmjs.com/package/web-push#using-vapid-key-for-applicationserverkey
-//          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-          applicationServerKey: publicVapidKey
-        });
+            registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: publicVapidKey}).then(function(subscription) {
+              console.log('Subscribed to push,', subscription);
+            }).catch(function(e) {
+              console.log('catch statements must be on the same level!');
+              console.log(e.code);
+              console.log(e.message);
+              console.log(e.name);
+            });
 
-        await fetch('/subscribe', {
-          method: 'POST',
-          body: JSON.stringify(subscription),
-          headers: {
-            'content-type': 'application/json'
-          }
+//          registration.pushManager.subscribe({
+//            userVisibleOnly: true,
+//            // The `urlBase64ToUint8Array()` function is the same as in
+//            // https://www.npmjs.com/package/web-push#using-vapid-key-for-applicationserverkey
+//  //          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+//            applicationServerKey: publicVapidKey
+//          }).then(subscription => {
+//            console.log('Subscribed');
+////            console.log('Going to fetch');
+////  //        const result = await fetch('/subscribe', {
+////  //          method: 'POST',
+////  //          body: JSON.stringify(subscription),
+////  //          headers: {
+////  //            'content-type': 'application/json'
+////  //          }
+////  //        });
+////  //        console.log('RESULT');
+////  //        console.log(result);
+//          }).catch(err => {
+//            console.log('Error subscribing');
+//            console.log(JSON.stringify(Object.keys(err)));
+//            console.log(JSON.stringify(err));
+//          });
+          }).catch(err => {
+            console.log('Error subscribing');
+            console.log(JSON.stringify(Object.keys(err)));
+            console.log(JSON.stringify(err));
+          });
         });
       });
+
+
+
+//      document.getElementById('subscribe-button').addEventListener('click', async () => {
+//        console.log('Subscribe clicked');
+//
+//        const registration = await navigator.serviceWorker.register('/worker.js', {scope: '/'});
+//
+//        //* 2021-1-14 https://github.com/bradtraversy/node_push_notifications/issues/1#issuecomment-389413687
+//        await navigator.serviceWorker.ready;
+//
+//        try {
+//        const subscription = await registration.pushManager.subscribe({
+//          userVisibleOnly: true,
+//          // The `urlBase64ToUint8Array()` function is the same as in
+//          // https://www.npmjs.com/package/web-push#using-vapid-key-for-applicationserverkey
+////          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+//          applicationServerKey: publicVapidKey
+//        });
+//        } catch(err) {
+//          console.log('ERROR Subscribing');
+//          console.log(JSON.stringify(err));
+//
+//        }
+//
+//        console.log('Going to fetch');
+//        const result = await fetch('/subscribe', {
+//          method: 'POST',
+//          body: JSON.stringify(subscription),
+//          headers: {
+//            'content-type': 'application/json'
+//          }
+//        });
+//        console.log('RESULT');
+//        console.log(result);
+//      });
 
     </script>
   </body>
