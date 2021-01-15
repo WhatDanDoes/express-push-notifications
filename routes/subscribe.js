@@ -41,7 +41,7 @@ router.post('/', function(req, res, next) {
 
   req.flash('info', 'Waiting for subscription confirmation...');
 
-  res.status(201).json(req.flash());
+  res.status(201).json({ messages: req.flash() });
 
   const payload = JSON.stringify({ message: 'You have successfully subscribed' });
 
