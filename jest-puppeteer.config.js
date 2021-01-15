@@ -6,10 +6,11 @@ module.exports = {
     //ignoreHTTPSErrors: true,
     //executablePath: '/usr/bin/google-chrome',
   },
-  server: {
-    command: 'node app.js',
-    port: 3001,
-  },
+//  server: {
+//    command: 'node app.js',
+//    port: 3001,
+//    debug: true
+//  },
   browser: 'chromium',
   browserContext: 'default',
 }
