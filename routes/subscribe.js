@@ -48,7 +48,11 @@ router.post('/', function(req, res, next) {
   console.log('subscription');
   console.log(JSON.stringify(subscription));
 
-  webpush.sendNotification(subscription, payload).catch(error => {
+  console.log('Trying to subscribe');
+  webpush.sendNotification(subscription, payload).then(val => {
+    console.log('Subscribe succeeded?');
+    console.log(val);
+  }).catch(error => {
     console.error(error);
     // For testing, for the moment. This will be properly handled in production.
     throw new Error('Couldn\'t subscribe');
