@@ -6,7 +6,9 @@ const request = require('supertest');
 const webpush = require('web-push');
 const conversions = require('webidl-conversions');
 const frisby = require('frisby');
-//const app = require('../app');
+
+const app = require('../app');
+
 
 /**
  * 2021-1-11
@@ -40,6 +42,15 @@ describe('subscribe', () => {
 //    page.on('console', consoleObj => console.log(consoleObj.text()));
 //  });
 
+  afterAll(done => {
+    app.close(done);
+  });
+
+  afterEach(() => {
+    // Subtle difference here...
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
 
   describe('api', () => {
 
@@ -58,9 +69,14 @@ describe('subscribe', () => {
           auth: process.env.PRIVATE_VAPID_KEY,
         }
       };
+
+
+
     });
 
     it('returns 201 with JSON', done => {
+      jest.spyOn(webpush, 'sendNotification').mockImplementation(() => new Promise(resolve => resolve({message: 'What happens on success from this mock?'})));
+
       frisby
         .post(`${APP_URL}/subscribe`, {...subscription})
         .setup({
@@ -82,21 +98,6 @@ describe('subscribe', () => {
         });
     });
 
-//    it('calls the webpush.sendNotification method', done => {
-//      spyOn(webpush, 'sendNotification').and.callThrough();
-//      expect(webpush.sendNotification).not.toHaveBeenCalled();
-//      request(app)
-//        .post('/subscribe')
-//        .set('Accept', 'application/json')
-//        .expect('Content-Type', /json/)
-//        .expect(201)
-//        .end((err, res) => {
-//          if (err) return done.fail(err);
-//          expect(webpush.sendNotification).toHaveBeenCalled();
-//          done();
-//        });
-//    });
-//
 //    it('immediately sends a successful subscribed notification', done => {
 ////      request(app)
 ////        .get('/subscribe')
@@ -108,32 +109,123 @@ describe('subscribe', () => {
 //          done.fail();
 ////        });
 //    });
+
+    /**
+     * Since the HTTP response is received before the subscription confirmation
+     * notification, there is necessarily an uncaught error.
+     *
+     * All this to ensure the `webpush.sendNotification` is called with the correct
+     * parameters. If something is out of whack, error is thrown.
+     *
+     */
+//    it('does a dns lookup on endpoint', done => {
+//console.log('TEST STARTED');
+//console.log(app.status);
+//      const dns = require('dns');
+//      const dnsSpy = jest.spyOn(dns, 'lookup')
+//        .mockImplementation((addr, options, done) => {
+//          console.log('dns.lookup', addr, options, done);
+//          if (addr === 'localhost') {
+//            done(null, '127.0.0.1', 4);
+//          }
+//          else if (addr === 'fake.push.service') {
+//            done(null, '127.0.0.1', 4);
+//          }
+//        });
 //
-//    /**
-//     * Since the HTTP response is received before the subscription confirmation
-//     * notification, there is necessarily an uncaught error.
-//     *
-//     * All this to ensure the `webpush.sendNotification` is called with the correct
-//     * parameters. If something is out of whack, error is thrown.
-//     *
-//     */
-//    it('doesn\'t throw an exception', done => {
-//      try {
-//        request(app)
-//          .post('/subscribe')
-//          .send({...subscription})
-//          .set('Accept', 'application/json')
-//          .expect('Content-Type', /json/)
-//          .expect(201)
-//          .end((err, res) => {
-//            if (err) return done.fail(err);
-//            done();
-//          });
-//      }
-//      catch (err) {
-//        done.fail('There should be no exception here', err);
-//      }
+//      frisby
+//        .post(`${APP_URL}/subscribe`, {...subscription})
+//        .setup({
+//          request: {
+//            headers: {
+//              'Accept': 'application/json'
+//            }
+//          }
+//        })
+//        .expect('header', 'Content-Type', /json/)
+//        .expect('status', 201)
+//        .then(res => JSON.parse(res.body))
+//        .then(body => {
+//          expect(dnsSpy).toBeCalled();
+//          expect(body.messages.info[0]).toEqual('Waiting for subscription confirmation...');
+////          done();
+//        }).catch(err => {
+//          done(err);
+//        });
+//
 //    });
+
+    it('calls the webpush.sendNotification method', done => {
+      const sendPushMessageSpy = jest.spyOn(webpush, 'sendNotification')
+        .mockImplementation((subscription, payload) => {
+          return new Promise(resolve =>  {
+            resolve({message: 'What happens on success from the spy?'});
+          });
+        });
+
+      frisby
+        .post(`${APP_URL}/subscribe`, {...subscription})
+        .setup({
+          request: {
+            headers: {
+              'Accept': 'application/json'
+            }
+          }
+        })
+        .expect('header', 'Content-Type', /json/)
+        .expect('status', 201)
+        .then(res => JSON.parse(res.body))
+        .then(body => {
+          expect(sendPushMessageSpy).toBeCalled();
+          done();
+        }).catch(err => {
+          done(err);
+        });
+    });
+
+    it('calls the browser subscribe endpoint', done => {
+      let endpointHit = false;
+
+      const rest = require('msw').rest;
+      const setupServer = require('msw/node').setupServer;
+      const server = setupServer(
+        // Describe the requests to mock.
+        rest.post('http://fake.push.service', (req, res, ctx) => {
+          endpointHit = true;
+          console.log("ENDPOINT HIT");
+          console.log(res);
+
+          return res(
+            ctx.status(201),
+            ctx.json({
+              message: 'What happens here, from the mws?',
+            })
+          );
+        }),
+      );
+      server.listen();
+
+
+      frisby
+        .post(`${APP_URL}/subscribe`, {...subscription})
+        .setup({
+          request: {
+            headers: {
+              'Accept': 'application/json'
+            }
+          }
+        })
+        .expect('header', 'Content-Type', /json/)
+        .expect('status', 201)
+        .then(res => JSON.parse(res.body))
+        .then(body => {
+          server.close();
+          expect(endpointHit).toBe(true);
+          done();
+        }).catch(err => {
+          done(err);
+        });
+    });
   });
 
   describe('browser', () => {
