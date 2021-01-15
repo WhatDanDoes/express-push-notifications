@@ -1,9 +1,12 @@
+require('dotenv').config();
+const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 //const path = require('path');
 const atob = require('atob');
 const request = require('supertest');
 const webpush = require('web-push');
 const conversions = require('webidl-conversions');
-const app = require('../app');
+const frisby = require('frisby');
+//const app = require('../app');
 
 /**
  * 2021-1-11
@@ -26,10 +29,7 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
-
-
-const puppeteer = require('puppeteer');
-
+const APP_URL = `http://localhost:${PORT}`
 
 describe('subscribe', () => {
 
@@ -41,16 +41,6 @@ describe('subscribe', () => {
 //  });
 
 
-
-  afterAll(done => {
-    // 2021-1-13
-    //
-    // https://stackoverflow.com/a/14516195/1356582
-    //
-    // This needs to be closed, otherwise you get a `Jest did not exit one second after the test run has completed` error
-    app.close(done);
-  });
-
   describe('api', () => {
 
     let subscription;
@@ -60,7 +50,7 @@ describe('subscribe', () => {
         // The `urlBase64ToUint8Array()` function is the same as in
         // https://www.npmjs.com/package/web-push#using-vapid-key-for-applicationserverkey
         applicationServerKey: urlBase64ToUint8Array(process.env.PUBLIC_VAPID_KEY),
-        endpoint: conversions['USVString']('https://some-fully-qualified-url.com'),
+        endpoint: conversions['USVString']('https://fake.push.service'),
 
         // Most of this won't be coming from the browser... how does it work? Stay tuned...
         keys: {
@@ -70,19 +60,27 @@ describe('subscribe', () => {
       };
     });
 
-//    it.only('returns 201 with JSON', done => {
-//      request(app)
-//        .post('/subscribe')
-//        .send({...subscription})
-//        .set('Accept', 'application/json')
-//        .expect('Content-Type', /json/)
-//        .expect(201)
-//        .end((err, res) => {
-//          if (err) return done.fail(err);
-//          expect(res.body.messages.info).toEqual('Waiting for subscription confirmation...');
-//          done();
-//        });
-//    });
+    it('returns 201 with JSON', done => {
+      frisby
+        .post(`${APP_URL}/subscribe`, {...subscription})
+        .setup({
+          request: {
+            headers: {
+              'Accept': 'application/json'
+            }
+          }
+        })
+        .expect('header', 'Content-Type', /json/)
+        .expect('status', 201)
+        .then(res => JSON.parse(res.body))
+        .then(body => {
+          expect(body.messages.info.length).toEqual(1);
+          expect(body.messages.info[0]).toEqual('Waiting for subscription confirmation...');
+          done();
+        }).catch(err => {
+          done(err);
+        });
+    });
 
 //    it('calls the webpush.sendNotification method', done => {
 //      spyOn(webpush, 'sendNotification').and.callThrough();
@@ -210,36 +208,27 @@ describe('subscribe', () => {
 
     describe('subscribing to notifications', () => {
 
-      let browser, page, context;
       beforeAll(async () => {
-    
-        browser = await puppeteer.launch(
-        {
-          dumpio: true,
-          ignoreHTTPSErrors: true,
-          //executablePath: '/usr/bin/google-chrome',
-          headless: false
-        }
-        );
+
         context = browser.defaultBrowserContext();
-    
-        await context.overridePermissions('http://localhost:3001', ['notifications']);
-    
-        page = await browser.newPage();
-        await page.goto('http://localhost:3001', {
-          waitUntil: "networkidle2"
-        });
-    
-        // There are some notes on this below. Cf., https://bugs.chromium.org/p/chromium/issues/detail?id=1052332
-        // Try running with head and without and note the difference
-        console.log('---------------------');
-        console.log(await page.evaluate(function(){return Notification.requestPermission();}));
-        console.log(await page.evaluate(function(){return Notification.permission;}));
-        console.log('---------------------');
+
+        await context.overridePermissions(APP_URL, ['notifications']);
+//
+//        page = await browser.newPage();
+//        await page.goto('http://localhost:3001', {
+//          waitUntil: "networkidle2"
+//        });
+//
+//        // There are some notes on this below. Cf., https://bugs.chromium.org/p/chromium/issues/detail?id=1052332
+//        // Try running with head and without and note the difference
+//        console.log('---------------------');
+//        console.log(await page.evaluate(function(){return Notification.requestPermission();}));
+//        console.log(await page.evaluate(function(){return Notification.permission;}));
+//        console.log('---------------------');
       });
 
       beforeEach(async () => {
-        await page.goto('http://localhost:3001');
+        await page.goto(APP_URL);
       });
 
       describe('successfully', () => {
