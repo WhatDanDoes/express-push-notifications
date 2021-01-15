@@ -278,25 +278,8 @@ describe('subscribe', () => {
         //});
 
         it('shows a waiting-for-subscription-confirmation message', async () => {
-//          console.log('TEST COMMENCING');
-//
-//          page.on('dialog', async dialog => {
-//            console.log('EW HAV DIALOG');
-//  //          await dialog.accept();
-//          });
-//
-//          const dialog = await expect(page).toDisplayDialog(async () => {
-//            console.log('HERE**********************************************************88');
-//
-//            await expect(page).toClick('#subscribe-button');
-//
-//            console.log('DIALOG');
-//            console.log(dialog.type());
-//          });
-
           await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
           await expect(page).toMatchElement('.alert.alert-info', 'Waiting for subscription confirmation...');
-
         });
       });
     });
