@@ -44,11 +44,11 @@ describe('subscribe', () => {
    * stuff. Uncomment the following to have the browser console relayed on
    * `stdout`.
    */
-//  beforeAll(() => {
-//    // 2021-1-13 https://stackoverflow.com/a/56275297/1356582
-//    // Get output from browser console.log
-//    page.on('console', consoleObj => console.log(consoleObj.text()));
-//  });
+  beforeAll(() => {
+    // 2021-1-13 https://stackoverflow.com/a/56275297/1356582
+    // Get output from browser console.log
+    page.on('console', consoleObj => console.log(consoleObj.text()));
+  });
 
   afterAll(done => {
     app.close(done);
@@ -309,6 +309,7 @@ describe('subscribe', () => {
     describe('subscribing to notifications', () => {
 
       beforeAll(async () => {
+        jest.setTimeout(10000);
 
         context = browser.defaultBrowserContext();
 
@@ -328,7 +329,10 @@ describe('subscribe', () => {
       });
 
       beforeEach(async () => {
-        await page.goto(APP_URL);
+        await page.goto(APP_URL, {
+          waintUntil: 'networkidle2',
+          timeout: 10000
+        });
       });
 
       describe('successfully', () => {
@@ -379,7 +383,8 @@ describe('subscribe', () => {
 
         it('shows a waiting-for-subscription-confirmation message', async () => {
           await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
-          await expect(page).toMatchElement('.alert.alert-info', 'Waiting for subscription confirmation...');
+          await page.waitForSelector('.alert');
+          await expect(page).toMatchElement('.messages .alert.alert-info', 'Waiting for subscription confirmation...');
         });
       });
     });
