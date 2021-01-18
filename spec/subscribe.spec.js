@@ -238,74 +238,6 @@ describe('subscribe', () => {
 
   describe('browser', () => {
 
-//    beforeEach(done => {
-//      browser = new Browser({ waitDuration: '30s', loadCss: false });
-//
-//      browser.visit('/', err => {
-//        if (err) return done.fail(err);
-//        done();
-//      });
-//    });
-
-//    beforeEach(done => {
-//      browser = new Browser({ waitDuration: '30s', loadCss: false });
-//
-//      const workerEnv = makeServiceWorkerEnv();
-//console.log(workerEnv);
-//
-//
-//      browser.visit('/', err => {
-//        browser._eventLoop.active.navigator.serviceWorker = 'What should this be?';
-//console.log('browser first---------');
-//console.log(browser._eventLoop.active.navigator);
-//
-//
-//        browser.visit('/', err => {
-//console.log('browser second---------');
-//console.log(browser._eventLoop.active.navigator);
-//
-//
-//          if (err) return done.fail(err);
-//          done();
-//        });
-//      });
-
-
-//      /**
-//       * The browser doesn't have an `_eventLoop` until it actually visits a
-//       * site.
-//       */
-//      browser.visit('/', err => {
-//
-//        /**
-//         * With the `_eventLoop` property in place, I can now attach the mock
-//         * service worker stuff.
-//         */
-//        browser._eventLoop.active.navigator.serviceWorker = {...mockBrowserNavigator };
-//
-//        /**
-//         * No more `undefined` errors. Service worker mocks are in place
-//         */
-//        browser.visit('/', err => {
-//
-//console.log('browser second visit---------');
-//console.log(browser._eventLoop.active.navigator);
-//
-//
-//
-//          if (err) return done.fail(err);
-//          done();
-//        });
-//      });
-//
-//
-//    });
-
-    afterEach(() => {
-//      delete require.cache[path.resolve('./public/worker.js')];
-    });
-
-
     describe('subscribing to notifications', () => {
 
       beforeAll(async () => {
@@ -313,19 +245,8 @@ describe('subscribe', () => {
 
         context = browser.defaultBrowserContext();
 
+        // Can't seem to interact with confirm alert box. This overrides that
         await context.overridePermissions(APP_URL, ['notifications']);
-//
-//        page = await browser.newPage();
-//        await page.goto('http://localhost:3001', {
-//          waitUntil: "networkidle2"
-//        });
-//
-//        // There are some notes on this below. Cf., https://bugs.chromium.org/p/chromium/issues/detail?id=1052332
-//        // Try running with head and without and note the difference
-//        console.log('---------------------');
-//        console.log(await page.evaluate(function(){return Notification.requestPermission();}));
-//        console.log(await page.evaluate(function(){return Notification.permission;}));
-//        console.log('---------------------');
       });
 
       beforeEach(async () => {
@@ -337,14 +258,10 @@ describe('subscribe', () => {
 
       describe('successfully', () => {
 
-//        it('lands in the right place', done => {
-//          browser.pressButton('#subscribe-button').then(() => {
-//            browser.assert.url({ pathname: '/' });
-//            done();
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
+        it('lands in the right place', async() => {
+          await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
+          expect(page.url()).toEqual(APP_URL + '/');
+        });
 
 
         /**
@@ -385,6 +302,41 @@ describe('subscribe', () => {
           await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
           await page.waitForSelector('.alert');
           await expect(page).toMatchElement('.messages .alert.alert-info', 'Waiting for subscription confirmation...');
+        });
+
+        /**
+         * This might not be possible drectly, because he alert comes from the
+         * OS notification system
+         */
+        it.only('receives a successfully-subscribed push message', async done => {
+
+          const rest = require('msw').rest;
+          const setupServer = require('msw/node').setupServer;
+          const server = setupServer(
+            // Describe the requests to mock.
+            rest.get('https://fcm.googleapis.com/0:1611003913926410%7031b2e6f9fd7ecd', (req, res, ctx) => {
+              endpointHit = true;
+              console.log("ENDPOINT HIT");
+              console.log(res);
+
+              return res(
+                ctx.status(201),
+                ctx.json({
+                  message: 'What happens here, from the mws?',
+                })
+              );
+            }),
+          );
+          server.listen();
+
+
+
+          browser.on('dialog', dialog => {
+            console.log("DIALOG IN VIEW");
+            done();
+          });
+
+          await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
         });
       });
     });
