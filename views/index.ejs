@@ -69,11 +69,11 @@
                 })
                 .catch(err => console.error(err));
 
-              }).catch(function(e) {
+              }).catch(err => {
                 console.log('catch statements must be on the same level!');
-                console.log(e.code);
-                console.log(e.message);
-                console.log(e.name);
+                console.log(err.code);
+                console.log(err.message);
+                console.log(err.name);
               });
             }).catch(err => {
               console.log('Error subscribing');
