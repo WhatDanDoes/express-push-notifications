@@ -36,6 +36,14 @@ const APP_URL = `http://localhost:${PORT}`
 describe('subscribe', () => {
 
 
+  /**
+   * 2021-1-18
+   *
+   * Regretably, headless puppeteer does not work the same as the _headful_
+   * execution. If executing in a browser, you can't see the `console.log`
+   * stuff. Uncomment the following to have the browser console relayed on
+   * `stdout`.
+   */
 //  beforeAll(() => {
 //    // 2021-1-13 https://stackoverflow.com/a/56275297/1356582
 //    // Get output from browser console.log
