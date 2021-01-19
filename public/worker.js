@@ -1,8 +1,9 @@
-console.log('Loaded service worker!');
+console.log('Hello! From worker.js');
 
 self.addEventListener('push', ev => {
+  console.log('worker.js: Incoming message...');
   const data = ev.data.json();
-  console.log('Got push', data);
+  console.log(data);
   self.registration.showNotification(data.title, {
     body: 'Hello, World!',
     icon: 'http://mongoosejs.com/docs/images/mongoose5_62x30_transparent.png'
