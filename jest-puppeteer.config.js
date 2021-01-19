@@ -2,6 +2,7 @@ module.exports = {
   launch: {
     dumpio: true,
     headless: process.env.HEADLESS !== 'false',
+    devtools: true,
     //args: ['--enable-features=NetworkService'],
     //ignoreHTTPSErrors: true,
     //executablePath: '/usr/bin/google-chrome',
