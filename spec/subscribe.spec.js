@@ -36,20 +36,6 @@ const APP_URL = `http://localhost:${PORT}`
 describe('subscribe', () => {
 
 
-  /**
-   * 2021-1-18
-   *
-   * Regretably, headless puppeteer does not work the same as the _headful_
-   * execution. If executing in a browser, you can't see the `console.log`
-   * stuff. Uncomment the following to have the browser console relayed on
-   * `stdout`.
-   */
-  beforeAll(() => {
-    // 2021-1-13 https://stackoverflow.com/a/56275297/1356582
-    // Get output from browser console.log
-    page.on('console', consoleObj => console.log(consoleObj.text()));
-  });
-
   afterAll(done => {
     app.close(done);
   });
@@ -237,9 +223,24 @@ describe('subscribe', () => {
   });
 
   describe('browser', () => {
+    /**
+     * 2021-1-18
+     *
+     * Regretably, headless puppeteer does not work the same as the _headful_
+     * execution. If executing in a browser, you can't see the `console.log`
+     * stuff. Uncomment the following to have the browser console relayed on
+     * `stdout`.
+     */
+    beforeAll(() => {
+      // 2021-1-13 https://stackoverflow.com/a/56275297/1356582
+      // Get output from browser console.log
+      //page.on('console', consoleObj => console.log(consoleObj.text()));
+    });
+
 
     describe('subscribing to notifications', () => {
 
+      let context;
       beforeAll(async () => {
         jest.setTimeout(10000);
 
@@ -250,10 +251,10 @@ describe('subscribe', () => {
       });
 
       beforeEach(async () => {
-        await page.goto(APP_URL, {
-          waintUntil: 'networkidle2',
-          timeout: 10000
-        });
+//        await page.goto(APP_URL, {
+//          waitUntil: 'networkidle2',
+//          timeout: 10000
+//        });
       });
 
       describe('successfully', () => {
@@ -307,7 +308,7 @@ describe('subscribe', () => {
          * This might not be possible drectly, because he alert comes from the
          * OS notification system
          */
-        it.only('receives a successfully-subscribed push message', async done => {
+        it('receives a successfully-subscribed push message', async done => {
 //          let session;
 //          browser.on('targetcreated', async (target) => {
 //            console.log('Target created');
@@ -320,6 +321,8 @@ describe('subscribe', () => {
           console.log('CDP session');
           console.log(session);
 
+
+
           /**
            * 2021-1-19 https://jsoverson.medium.com/using-chrome-devtools-protocol-with-puppeteer-737a1300bac0
            *
@@ -329,28 +332,28 @@ describe('subscribe', () => {
            *
            * Now how to make it work for notifications...
            */
-          await session.send('Network.enable');
-          await session.send('Network.setRequestInterception', { patterns: [
-            {
-              urlPattern: '*',
-              resourceType: 'Script',
-              interceptionStage: 'HeadersReceived'
-            }
-          ]});
+          //await session.send('Network.enable');
+          //await session.send('Network.setRequestInterception', { patterns: [
+          //  {
+          //    urlPattern: '*',
+          //    resourceType: 'Script',
+          //    interceptionStage: 'HeadersReceived'
+          //  }
+          //]});
 
-          session.on('Network.requestIntercepted', ({ interceptionId }) => {
-            console.log("NETWORK CONNECTION INTERCEPTED");
-            session.send('Network.continueInterceptedRequest', {
-              interceptionId,
-            });
-          });
+          //session.on('Network.requestIntercepted', ({ interceptionId }) => {
+          //  console.log("NETWORK CONNECTION INTERCEPTED");
+          //  session.send('Network.continueInterceptedRequest', {
+          //    interceptionId,
+          //  });
+          //});
 
           /**
            * This is the stuff I'm interested in...
            */
           // Finally got service workers to update. Seperate into new test
           await session.send('ServiceWorker.enable');
-          await session.send('ServiceWorker.stopAllWorkers');
+//          await session.send('ServiceWorker.stopAllWorkers');
           await session.send('ServiceWorker.setForceUpdateOnPageLoad', {forceUpdateOnPageLoad: true});
           session.on('ServiceWorker.workerRegistrationUpdated', async reg => {
             console.log("The service worker was updated");
@@ -372,7 +375,6 @@ describe('subscribe', () => {
                 });
                 console.log('Push triggered');
                 console.log(res);
-
               }
               catch (err) {
                 console.error(err);
@@ -384,15 +386,22 @@ describe('subscribe', () => {
             console.log(dialog);
 
           });
+          session.on('ServiceWorker.onmessage', async reg => {
+            console.log('************************* A long shot');
+          });
 
-//          session.on('ServiceWorker.workerErrorReported', err => {
-//            console.log("** There was a ServiceWorker error");
-//            console.log(err.errorMessage);
+          //
+//          await session.send('Runtime.enable');
+//          session.on('Runtime.consoleAPICalled', async reg => {
+//            console.log('************************* Runtime.consoleAPICalled');
+//            console.log(reg);
 //          });
-//
+
+
+
 //          await session.send('BackgroundService.clearEvents', {service: 'notifications'});
 //          await session.send('BackgroundService.setRecording', {shouldRecord: true, service: 'notifications'});
-////          await session.send('BackgroundService.startObserving', {service: 'notifications'});
+          await session.send('BackgroundService.startObserving', {service: 'pushMessaging'});
 
           session.on('BackgroundService.backgroundServiceEventReceived', dialog => {
             console.log("IS THIS THE SERVICE WORKER???");
@@ -401,25 +410,158 @@ describe('subscribe', () => {
 
           // Push notification uses OS's messaging
           // This will never fire
-          session.on('dialog', dialog => {
+          page.on('dialog', dialog => {
             console.log('DIALOG EVENT FIRED');
             done();
           });
 
           await page.goto(APP_URL, {
-            waintUntil: 'networkidle2',
+            waitUntil: 'networkidle2',
             timeout: 10000
           });
+
+          console.log('page');
+          console.log(page.workers());
+          //
+          // What is best practices when registering service workers?
+          //
+          // Apart from permissions, should it be automatic registration, or should
+          // it be due to an action taken in the app?
+          //
+          await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
+
+//          await session.send('BackgroundService.clearEvents', {service: 'notifications'});
+        });
+
+        /**
+         * Push Notifications are unwieldy. This is an attempt at focusing and
+         * simplifying the tests by triggering a push event and ensuring
+         * the proper browser function gets fired
+         */
+        it.only('triggers a notification on push event', async done => {
+
+
+          let session = await page.target().createCDPSession();
+          console.log('session');
+          console.log(session);
+
+
+
+          // Finally got service workers to update. Seperate into new test
+          await session.send('ServiceWorker.enable');
+///          //await session.send('ServiceWorker.stopAllWorkers');
+          await session.send('ServiceWorker.setForceUpdateOnPageLoad', {forceUpdateOnPageLoad: true});
+          session.on('ServiceWorker.workerRegistrationUpdated', async reg => {
+            console.log("The service worker was updated");
+            console.log(reg);
+
+
+            // Attach listener to worker target
+            let targets = await session.send('Target.getTargets');//, { type: 'service_worker' });
+            console.log('session targets');
+            //console.log(targets);
+
+            let sw = targets.targetInfos.find(t => t.type === 'service_worker');
+            console.log('service worker target');
+            console.log(sw);
+
+            session.on('Target.receivedMessageFromTarget', evt => {
+              console.log('Target.receivedMessageFromTarget');
+              console.log(evt);
+            });
+
+            /**
+             * This is, so far, the only way to send an actuall push message
+             */
+            let res = await session.send('ServiceWorker.deliverPushMessage', {
+              registrationId: reg.registrations[0].registrationId,
+              origin: reg.registrations[0].scopeURL,
+              data: JSON.stringify({ message: "Word." })
+            });
+          });
+
+          session.on('ServiceWorker.workerErrorReported', request => {
+            console.log('************************* ServiceWorker.workerErrorReported');
+            console.log(request);
+          });
+
+
+//          await session.send('Runtime.enable');
+//          session.on('Runtime.consoleAPICalled', async data => {
+//            console.log('************************* Runtime.consoleAPICalled');
+//            console.log(data);
+//          });
+
+          page.on('console', msg => {
+            console.log('************************* puppeteer console called');
+            console.log(msg);
+          });
+
+          await page.goto(APP_URL, {
+            waitUntil: 'networkidle2',
+            timeout: 10000
+          });
+
+
+//          await session.send('Log.enable');
+//          session.on('Log.entryAdded', async data => {
+//            console.log('************************* Log.entryAdded');
+//            console.log(data);
+//          });
+
+
+
+
+//          let target = await page.target();
+//          console.log('target');
+//          console.log(target);
+//
+//
+//
+//
+//          swTarget.browserContext().on('push', evt => {
+//            console.log('service worker received a push');
+//            console.log(evt);
+//          });
 
           //
           // What is best practices when registering service workers?
           //
           // Apart from permissions, should it be automatic registration, or should
-          // an action be taken in the app?
+          // it be due to an action taken in the app?
           //
           await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
 
-//          await session.send('BackgroundService.clearEvents', {service: 'notifications'});
+//            await context.emit('push', {message: 'Hello, everybody!'});
+
+//          swTarget.browserContext().emit('push', {message: 'Hello, everybody!'});
+
+
+//          let targets = await session.send('Target.getTargets');//, { type: 'service_worker' });
+//          console.log('session targets');
+//          console.log(targets);
+//
+//          let sw = targets.targetInfos.find(t => t.type === 'service_worker');
+//          console.log('service worker target');
+//          console.log(sw);
+//
+//          session.on('Target.receivedMessageFromTarget', evt => {
+//            console.log('Target.receivedMessageFromTarget');
+//            console.log(evt);
+//          });
+//
+//          session.on('Target.attachedToTarget', async evt => {
+//            console.log('Target.attachedToTarget');
+//            console.log(evt);
+//            await session.send('Target.sendMessageToTarget', { targetId: evt.targetInfo.targetId, sessionId: evt.sessionId, message: JSON.stringify({message: 'IT SENT WOOOOOOOO!' }) });
+//
+//          });
+
+//          let sessId = await session.send('Target.attachToTarget', { targetId: sw.targetId });
+//            console.log('ID');
+//            console.log(sessId);
+
+
         });
       });
     });
