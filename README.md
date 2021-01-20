@@ -24,6 +24,14 @@ The keys generated need to be set in the `.env` file.
 npm test
 ```
 
+Make sure to set the `HEADLESS` environment variable when running a single test:
+
+```
+HEADLESS=false npx jest spec/subscribe.spec.js
+```
+
+`ServiceWorker` support is spotty in _headless_ mode.
+
 # Development
 
 ```
