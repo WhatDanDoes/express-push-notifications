@@ -1,4 +1,9 @@
-console.log('Hello! From worker.js');
+/**
+ * `self` is an instance of `ServiceWorkerGlobalScope`
+ *
+ */
+console.error('Hello! From worker.js');
+console.log(self);
 
 self.addEventListener('push', ev => {
   console.log('worker.js: Incoming message...');
