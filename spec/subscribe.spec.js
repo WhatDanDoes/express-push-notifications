@@ -440,6 +440,38 @@ describe('subscribe', () => {
          */
         it.only('triggers a notification on push event', async done => {
 
+          //
+          // Notes for testing apologetic
+          //
+          // `nock` and `msw` cannot intercept requests from the browser
+
+          //const rest = require('msw').rest;
+          //const setupServer = require('msw/node').setupServer;
+          //const server = setupServer(
+          //  // Describe the requests to mock.
+          //  rest.get(`${APP_URL}/worker.js`, (req, res, ctx) => {
+          //    console.log("MSW ENDPOINT HIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+          //    console.log(res);
+          //
+          //    return res(
+          //      ctx.status(404),
+          //      ctx.json({
+          //        message: 'What happens here, from the mws?',
+          //      })
+          //    );
+          //  }),
+          //);
+          //server.listen();
+
+          //const nock = require('nock')
+          //
+          //const scope = nock(APP_URL)
+          //  .get('/worker.js')
+          //  .reply(200, (uri, requestBody) => {
+          //    console.log("NOCK ENDPOINT HIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+          //    return 'SERVICE WORKER HERE';
+          //  });
+
 
           let session = await page.target().createCDPSession();
           console.log('session');
@@ -449,12 +481,10 @@ describe('subscribe', () => {
 
           // Finally got service workers to update. Seperate into new test
           await session.send('ServiceWorker.enable');
-///          //await session.send('ServiceWorker.stopAllWorkers');
           await session.send('ServiceWorker.setForceUpdateOnPageLoad', {forceUpdateOnPageLoad: true});
           session.on('ServiceWorker.workerRegistrationUpdated', async reg => {
             console.log("The service worker was updated");
             console.log(reg);
-
 
             // Attach listener to worker target
             let targets = await session.send('Target.getTargets');//, { type: 'service_worker' });
@@ -485,44 +515,18 @@ describe('subscribe', () => {
             console.log(request);
           });
 
-
-//          await session.send('Runtime.enable');
-//          session.on('Runtime.consoleAPICalled', async data => {
-//            console.log('************************* Runtime.consoleAPICalled');
-//            console.log(data);
-//          });
-
           page.on('console', msg => {
             console.log('************************* puppeteer console called');
             console.log(msg);
           });
 
+          // Which `networkidleX`? https://github.com/puppeteer/puppeteer/issues/1552#issuecomment-350954419
+          // The `networkidle0` seems a little lest flaky
           await page.goto(APP_URL, {
-            waitUntil: 'networkidle2',
+            waitUntil: 'networkidle0',
             timeout: 10000
           });
 
-
-//          await session.send('Log.enable');
-//          session.on('Log.entryAdded', async data => {
-//            console.log('************************* Log.entryAdded');
-//            console.log(data);
-//          });
-
-
-
-
-//          let target = await page.target();
-//          console.log('target');
-//          console.log(target);
-//
-//
-//
-//
-//          swTarget.browserContext().on('push', evt => {
-//            console.log('service worker received a push');
-//            console.log(evt);
-//          });
 
           //
           // What is best practices when registering service workers?
@@ -531,37 +535,6 @@ describe('subscribe', () => {
           // it be due to an action taken in the app?
           //
           await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
-
-//            await context.emit('push', {message: 'Hello, everybody!'});
-
-//          swTarget.browserContext().emit('push', {message: 'Hello, everybody!'});
-
-
-//          let targets = await session.send('Target.getTargets');//, { type: 'service_worker' });
-//          console.log('session targets');
-//          console.log(targets);
-//
-//          let sw = targets.targetInfos.find(t => t.type === 'service_worker');
-//          console.log('service worker target');
-//          console.log(sw);
-//
-//          session.on('Target.receivedMessageFromTarget', evt => {
-//            console.log('Target.receivedMessageFromTarget');
-//            console.log(evt);
-//          });
-//
-//          session.on('Target.attachedToTarget', async evt => {
-//            console.log('Target.attachedToTarget');
-//            console.log(evt);
-//            await session.send('Target.sendMessageToTarget', { targetId: evt.targetInfo.targetId, sessionId: evt.sessionId, message: JSON.stringify({message: 'IT SENT WOOOOOOOO!' }) });
-//
-//          });
-
-//          let sessId = await session.send('Target.attachToTarget', { targetId: sw.targetId });
-//            console.log('ID');
-//            console.log(sessId);
-
-
         });
       });
     });

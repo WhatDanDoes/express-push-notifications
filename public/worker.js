@@ -2,7 +2,7 @@
  * `self` is an instance of `ServiceWorkerGlobalScope`
  *
  */
-console.error('Hello! From worker.js');
+console.log('Hello! From worker.js');
 console.log(self);
 
 self.addEventListener('push', ev => {
