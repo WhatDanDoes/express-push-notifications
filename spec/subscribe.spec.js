@@ -513,6 +513,17 @@ describe('subscribe', () => {
           session.on('ServiceWorker.workerErrorReported', request => {
             console.log('************************* ServiceWorker.workerErrorReported');
             console.log(request);
+
+            try {
+              let data = JSON.parse(request.errorMessage.errorMessage);
+              expect(data.message).toEqual('Word.');
+              if (data.message === 'Word.') {
+                done();
+              }
+            }
+            catch (err) {
+              console.log('No match');
+            }
           });
 
           page.on('console', msg => {
