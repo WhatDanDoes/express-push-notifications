@@ -27,7 +27,9 @@ As it turns out, Push Notifications are still pretty bleeding edge. The tests th
 
 #### Current state
 
-That which is currently committed to `master` represents the most primitive _meaningful_ tests I could devise. The software itself registers the service worker, subscribes to the notifications, and receives a pending and live notification in turn.
+That which is currently committed to `master` documents the most primitive _meaningful_ tests I could devise. I demonstrate my naive, first-time application of `jest` and `jest-puppeteer`. Tests pass, but there's a lot of debug output that look like fails.
+
+The app itself registers the service worker, subscribes to the notifications, and receives a pending and live notification in turn.
 
 More is coming... (I'll start by removing commented junk)
 
@@ -52,13 +54,13 @@ The keys generated need to be set in the `.env` file.
 npm test
 ```
 
-Make sure to set the `HEADLESS` environment variable when running a single test:
+Make sure to set the `HEADLESS` environment variable to `false` when running a single test:
 
 ```
 HEADLESS=false npx jest spec/subscribe.spec.js
 ```
 
-`ServiceWorker` support is spotty in _headless_ mode.
+[Notifications are not available in headless mode](https://github.com/puppeteer/puppeteer/issues/3432).
 
 # Development
 
