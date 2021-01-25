@@ -46,58 +46,50 @@
           }
         });
 
-
         const publicVapidKey = 'BDg8l9P_uXEbu2XT0qmCet4RndcAkKODMpnFIqs_E0lyTq5X-UJQ_CnHnbX6hR7AelzzRJLYY3gvAU2lKHNgMRo';
-
 
         document.getElementById('subscribe-button').addEventListener('click', async () => {
           console.log('Subscribe clicked');
 
-          // 2021-1-14 https://github.com/bradtraversy/node_push_notifications/issues/1#issuecomment-389413687
-          navigator.serviceWorker.ready.then(registration => {;
-            console.log('serviceWorker ready');
+          /**
+           * What is best practice here? Obviously, a subscribe needs permission.
+           * But what about the service worker? It doesn't seem like anything is
+           * stopping me from registering them silently.
+           */
+          registration.pushManager.getSubscription().then(subscription => {
+            console.log('Attempted to retrieve subscription');
+            console.log(JSON.stringify(subscription));
 
+            registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: publicVapidKey}).then((subscription) => {
+              console.log('Subscribed to push,', subscription);
 
+              console.log('Fetching');
+              fetch('/subscribe', {
+                method: 'POST',
+                body: JSON.stringify(subscription),
+                headers: {
+                  'content-type': 'application/json'
+                }
+              })
+              .then(response => response.json())
+              .then(data => {
+                console.log(data);
+                var message = document.createElement('div');
+                message.classList.add('alert');
+                message.classList.add('alert-info');
+                message.appendChild(document.createTextNode(data.messages.info[0]));
+                document.getElementsByClassName('messages')[0].appendChild(message);
+              })
+              .catch(err => console.error(err));
 
-            registration.pushManager.getSubscription().then(subscription => {
-              console.log('Attempted to retrieve subscription');
-              console.log(JSON.stringify(subscription));
-
-              registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: publicVapidKey}).then((subscription) => {
-                console.log('Subscribed to push,', subscription);
-
-                console.log('Fetching');
-                fetch('/subscribe', {
-                  method: 'POST',
-                  body: JSON.stringify(subscription),
-                  headers: {
-                    'content-type': 'application/json'
-                  }
-                })
-                .then(response => response.json())
-                .then(data => {
-                  console.log(data);
-                  var message = document.createElement('div');
-                  message.classList.add('alert');
-                  message.classList.add('alert-info');
-                  message.appendChild(document.createTextNode(data.messages.info[0]));
-                  document.getElementsByClassName('messages')[0].appendChild(message);
-                })
-                .catch(err => console.error(err));
-
-              }).catch(err => {
-                console.log('catch statements must be on the same level!');
-                console.log(err.code);
-                console.log(err.message);
-                console.log(err.name);
-              });
             }).catch(err => {
-              console.log('Error subscribing');
-              console.log(JSON.stringify(Object.keys(err)));
-              console.log(JSON.stringify(err));
+              console.log('catch statements must be on the same level!');
+              console.log(err.code);
+              console.log(err.message);
+              console.log(err.name);
             });
           }).catch(err => {
-            console.log('Error getting subscription');
+            console.log('Error subscribing');
             console.log(JSON.stringify(Object.keys(err)));
             console.log(JSON.stringify(err));
           });
