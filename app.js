@@ -55,7 +55,7 @@ if (process.env.NODE_ENV === 'test') {
   const fs = require('fs');
 
   console.log('Testing...');
-  console.log(process.env.NODE_ENV);
+  console.log(`NODE_ENV=${process.env.NODE_ENV}`);
 
   app.use('/worker.js', function(req, res, next) {
     console.log('Mocking ServiceWorker endpoint');
@@ -73,8 +73,7 @@ if (process.env.NODE_ENV === 'test') {
     // _testable_ with regard to Push Notifications.
     //
     fs.readFile(`${__dirname}/public/worker.js`, 'utf8', (err, data) => {
-      if (err) return done.fail(err);
-
+      if (err) return res.status(400).json(err);
       //
       // I have discovered that a ServiceWorker does not trigger the same
       // events on `console.log` as in-page Javascript. So far, the only way I
@@ -90,11 +89,10 @@ if (process.env.NODE_ENV === 'test') {
 
       // 2021-1-21 https://stackoverflow.com/questions/38788721/how-do-i-stream-response-in-express
       res.write(data);
+      res.end();
     });
   });
 }
-
-
 
 app.use(express.static(path.join(__dirname, 'public')));
 
