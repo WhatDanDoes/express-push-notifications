@@ -5,7 +5,7 @@ A Hello World type demonstration of sending push notifications from Express.
 
 # Background
 
-[Churches in Canada are allowed 50W FM transmitters](https://crtc.gc.ca/eng/archive/2013/2013-621.htm), but few churches actually have one. My [old church](https://saintpeters.ca/), did a four-week trial-run with a loaner. Last year, 2020 Sunday services and Christmas were broadcast over the town of Cochrane and into the countryside on the FM band.
+[Churches in Canada are allowed 50W FM transmitters](https://crtc.gc.ca/eng/archive/2013/2013-621.htm), but few churches actually have one. My [old church](https://saintpeters.ca/) did a four-week trial-run with a loaner. Last year, 2020 Sunday services and Christmas were broadcast over the town of Cochrane and into the countryside on the FM band.
 
 _So why browser [Push Notifications](https://developer.mozilla.org/en-US/docs/Web/API/Push\_API)?_
 
@@ -27,11 +27,11 @@ As it turns out, Push Notifications are still pretty bleeding edge. The tests th
 
 #### Current state
 
-That which is currently committed to `master` documents the most primitive _meaningful_ tests I could devise. I demonstrate my naive, first-time application of `jest` and `jest-puppeteer`. Tests pass, but there's a lot of debug output that look like fails.
+That which is currently committed to `master` documents the most primitive _meaningful_ tests I could devise. I demonstrate my naive, first-time application of `jest` and `jest-puppeteer`. Tests pass, but there's a lot of confusing debug output to suggest otherwise.
 
 The app itself registers the service worker, subscribes to the notifications, and receives a pending and live notification in turn.
 
-More is coming... (I'll start by removing commented junk)
+More is coming...
 
 # Setup
 
