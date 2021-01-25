@@ -35,6 +35,10 @@ const APP_URL = `http://localhost:${PORT}`
 
 describe('subscribe', () => {
 
+  /**
+   * This drove me nuts at first. You have to shut down the express server
+   * or you get uncaught async errors everywhere
+   */
   afterAll(done => {
     app.close(done);
   });
@@ -67,6 +71,8 @@ describe('subscribe', () => {
     it('returns 201 with JSON', done => {
       jest.spyOn(webpush, 'sendNotification').mockImplementation(() => new Promise(resolve => resolve({message: 'What happens on success from this mock?'})));
 
+      // Frisby came into the mix because you just need a running server.
+      // You don't need to pass an instance of the server (cf., `supertest`)
       frisby
         .post(`${APP_URL}/subscribe`, {...subscription})
         .setup({
@@ -88,17 +94,29 @@ describe('subscribe', () => {
         });
     });
 
-//    it('immediately sends a successful subscribed notification', done => {
-////      request(app)
-////        .get('/subscribe')
-////        .set('Accept', 'application/json')
-////        .expect('Content-Type', /json/)
-////        .expect(201)
-////        .end((err, res) => {
-////          if (err) return done.fail(err);
-//          done.fail();
-////        });
-//    });
+    /**
+     * I realized I wasn't going to be able to use my tried-and-true
+     * `jasmine`-`zombie` tag team early on. `zombie` doesn't have any
+     * concept of service workers.
+     *
+     * `puppeteer` was chosen because it seems to play nicely with `jest`
+     */
+    //  it('immediately sends a successful subscribed notification', done => {
+    //      request(app)
+    //        .get('/subscribe')
+    //        .set('Accept', 'application/json')
+    //        .expect('Content-Type', /json/)
+    //        .expect(201)
+    //        .end((err, res) => {
+    //          if (err) return done.fail(err);
+    //          done.fail();
+    //        });
+    //  });
+
+    /**
+     * Went down a dark trail...
+     */
+    //it('does a dns lookup on endpoint', done => { });
 
     /**
      * Since the HTTP response is received before the subscription confirmation
@@ -108,43 +126,6 @@ describe('subscribe', () => {
      * parameters. If something is out of whack, error is thrown.
      *
      */
-//    it('does a dns lookup on endpoint', done => {
-//console.log('TEST STARTED');
-//console.log(app.status);
-//      const dns = require('dns');
-//      const dnsSpy = jest.spyOn(dns, 'lookup')
-//        .mockImplementation((addr, options, done) => {
-//          console.log('dns.lookup', addr, options, done);
-//          if (addr === 'localhost') {
-//            done(null, '127.0.0.1', 4);
-//          }
-//          else if (addr === 'fake.push.service') {
-//            done(null, '127.0.0.1', 4);
-//          }
-//        });
-//
-//      frisby
-//        .post(`${APP_URL}/subscribe`, {...subscription})
-//        .setup({
-//          request: {
-//            headers: {
-//              'Accept': 'application/json'
-//            }
-//          }
-//        })
-//        .expect('header', 'Content-Type', /json/)
-//        .expect('status', 201)
-//        .then(res => JSON.parse(res.body))
-//        .then(body => {
-//          expect(dnsSpy).toBeCalled();
-//          expect(body.messages.info[0]).toEqual('Waiting for subscription confirmation...');
-////          done();
-//        }).catch(err => {
-//          done(err);
-//        });
-//
-//    });
-
     it('calls the webpush.sendNotification method', done => {
       const sendPushMessageSpy = jest.spyOn(webpush, 'sendNotification')
         .mockImplementation((subscription, payload) => {
@@ -173,6 +154,10 @@ describe('subscribe', () => {
         });
     });
 
+    /**
+     * This is `express` requesting and receiving the subscription information that
+     * actually relays the push message
+     */
     it('calls the browser subscribe endpoint', done => {
       let endpointHit = false;
 
@@ -194,7 +179,6 @@ describe('subscribe', () => {
         }),
       );
       server.listen();
-
 
       frisby
         .post(`${APP_URL}/subscribe`, {...subscription})
@@ -257,15 +241,7 @@ describe('subscribe', () => {
           }).catch(e => {
             console.error(e);
           });
-
-
-  ////        await page.goto(APP_URL, {
-  ////          waitUntil: 'networkidle2',
-  ////          timeout: 10000
-  ////        });
         });
-
-
 
         it('lands in the right place', async () => {
           await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });//.catch(e => console.error(e));
@@ -307,142 +283,77 @@ describe('subscribe', () => {
         //});
 
         it('shows a waiting-for-subscription-confirmation message', async () => {
-          console.log('THE TEST IS STARTING');
           await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
-          console.log('WAITING FOR ALERT');
           await page.waitForSelector('.alert');
           await expect(page).toMatchElement('.messages .alert.alert-info', 'Waiting for subscription confirmation...');
         });
 
         /**
-         * This might not be possible drectly, because the alert comes from the
+         * This turned out to not be possible, because the alert comes from the
          * OS notification system
          */
-//        it('receives a successfully-subscribed push message', async done => {
-////          let session;
-////          browser.on('targetcreated', async (target) => {
-////            console.log('Target created');
-////            page = await target.page();
-////            await initializeCDP(page);
-////            session = await page.target().createCDPSession();
-////          });
-//
-//          let session = await page.target().createCDPSession();
-//          console.log('CDP session');
-//          console.log(session);
-//
-//
-//
-//          /**
-//           * 2021-1-19 https://jsoverson.medium.com/using-chrome-devtools-protocol-with-puppeteer-737a1300bac0
-//           *
-//           * This isn't particularly useful, though it does show the CDP stuff
-//           * does actually work (run tests in development mode to see the event
-//           * fire).
-//           *
-//           * Now how to make it work for notifications...
-//           */
-//          //await session.send('Network.enable');
-//          //await session.send('Network.setRequestInterception', { patterns: [
-//          //  {
-//          //    urlPattern: '*',
-//          //    resourceType: 'Script',
-//          //    interceptionStage: 'HeadersReceived'
-//          //  }
-//          //]});
-//
-//          //session.on('Network.requestIntercepted', ({ interceptionId }) => {
-//          //  console.log("NETWORK CONNECTION INTERCEPTED");
-//          //  session.send('Network.continueInterceptedRequest', {
-//          //    interceptionId,
-//          //  });
-//          //});
-//
-//          /**
-//           * This is the stuff I'm interested in...
-//           */
-//          // Finally got service workers to update. Seperate into new test
-//          await session.send('ServiceWorker.enable');
-////          await session.send('ServiceWorker.stopAllWorkers');
-//          await session.send('ServiceWorker.setForceUpdateOnPageLoad', {forceUpdateOnPageLoad: true});
-//          session.on('ServiceWorker.workerRegistrationUpdated', async reg => {
-//            console.log("The service worker was updated");
-//            console.log(reg);
-//            await session.send('ServiceWorker.startWorker', { scopeURL: reg.registrations[0].scopeURL });
-////            let res  = await session.send('ServiceWorker.inspectWorker', { versionId: reg.registrations[0].registrationId });
-////            console.log(res);
-//
-//            const dialog = await expect(page).toDisplayDialog(async () => {
-//              console.log("Inside DIALOG expect block");
-//              //await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
-//
-//              // Try triggering the push event
-//              try {
-//                let res = await session.send('ServiceWorker.deliverPushMessage', {
-//                  registrationId: reg.registrations[0].registrationId,
-//                  origin: reg.registrations[0].scopeURL,
-//                  data: JSON.stringify({ message: "Word." })
-//                });
-//                console.log('Push triggered');
-//                console.log(res);
-//              }
-//              catch (err) {
-//                console.error(err);
-//              };
-//
-//            });
-//
-//            console.log('dialog');
-//            console.log(dialog);
-//
-//          });
-//          session.on('ServiceWorker.onmessage', async reg => {
-//            console.log('************************* A long shot');
-//          });
-//
-//          //
-////          await session.send('Runtime.enable');
-////          session.on('Runtime.consoleAPICalled', async reg => {
-////            console.log('************************* Runtime.consoleAPICalled');
-////            console.log(reg);
-////          });
-//
-//
-//
-////          await session.send('BackgroundService.clearEvents', {service: 'notifications'});
-////          await session.send('BackgroundService.setRecording', {shouldRecord: true, service: 'notifications'});
-//          await session.send('BackgroundService.startObserving', {service: 'pushMessaging'});
-//
-//          session.on('BackgroundService.backgroundServiceEventReceived', dialog => {
-//            console.log("IS THIS THE SERVICE WORKER???");
-//            done();
-//          });
-//
-//          // Push notification uses OS's messaging
-//          // This will never fire
-//          page.on('dialog', dialog => {
-//            console.log('DIALOG EVENT FIRED');
-//            done();
-//          });
-//
-//          await page.goto(APP_URL, {
-//            waitUntil: 'networkidle2',
-//            timeout: 10000
-//          });
-//
-//          console.log('page');
-//          console.log(page.workers());
-//          //
-//          // What is best practices when registering service workers?
-//          //
-//          // Apart from permissions, should it be automatic registration, or should
-//          // it be due to an action taken in the app?
-//          //
-//          await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
-//
-////          await session.send('BackgroundService.clearEvents', {service: 'notifications'});
-//        });
+        //it('receives a successfully-subscribed push message', async done => { });
+
+        /**
+         * Aside:
+         *
+         * 2021-1-19 https://jsoverson.medium.com/using-chrome-devtools-protocol-with-puppeteer-737a1300bac0
+         *
+         * This isn't particularly useful, though it does show the CDP stuff
+         * does actually work (run tests in development mode to see the event
+         * fire).
+         *
+         * If only you could make it worker for notifications...
+         */
+        //await session.send('Network.enable');
+        //await session.send('Network.setRequestInterception', { patterns: [
+        //  {
+        //    urlPattern: '*',
+        //    resourceType: 'Script',
+        //    interceptionStage: 'HeadersReceived'
+        //  }
+        //]});
+
+        //session.on('Network.requestIntercepted', ({ interceptionId }) => {
+        //  console.log("NETWORK CONNECTION INTERCEPTED");
+        //  session.send('Network.continueInterceptedRequest', {
+        //    interceptionId,
+        //  });
+        //});
       });
+
+      /**
+       * Another aside:
+       *
+       * Just in case you were wondering, `nock` and `msw` cannot intercept
+       * requests from the browser
+       */
+      //const rest = require('msw').rest;
+      //const setupServer = require('msw/node').setupServer;
+      //const server = setupServer(
+      //  // Describe the requests to mock.
+      //  rest.get(`${APP_URL}/worker.js`, (req, res, ctx) => {
+      //    console.log("MSW ENDPOINT HIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      //    console.log(res);
+      //
+      //    return res(
+      //      ctx.status(404),
+      //      ctx.json({
+      //        message: 'What happens here, from the mws?',
+      //      })
+      //    );
+      //  }),
+      //);
+      //server.listen();
+
+      //const nock = require('nock')
+      //
+      //const scope = nock(APP_URL)
+      //  .get('/worker.js')
+      //  .reply(200, (uri, requestBody) => {
+      //    console.log("NOCK ENDPOINT HIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      //    return 'SERVICE WORKER HERE';
+      //  });
 
       describe('push notifications', () => {
         /**
@@ -452,72 +363,35 @@ describe('subscribe', () => {
          */
         it('triggers a notification on push event', async done => {
 
-          //
-          // Notes for testing apologetic
-          //
-          // `nock` and `msw` cannot intercept requests from the browser
-
-          //const rest = require('msw').rest;
-          //const setupServer = require('msw/node').setupServer;
-          //const server = setupServer(
-          //  // Describe the requests to mock.
-          //  rest.get(`${APP_URL}/worker.js`, (req, res, ctx) => {
-          //    console.log("MSW ENDPOINT HIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-          //    console.log(res);
-          //
-          //    return res(
-          //      ctx.status(404),
-          //      ctx.json({
-          //        message: 'What happens here, from the mws?',
-          //      })
-          //    );
-          //  }),
-          //);
-          //server.listen();
-
-          //const nock = require('nock')
-          //
-          //const scope = nock(APP_URL)
-          //  .get('/worker.js')
-          //  .reply(200, (uri, requestBody) => {
-          //    console.log("NOCK ENDPOINT HIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-          //    return 'SERVICE WORKER HERE';
-          //  });
-
           let testPassed = false;
 
-          //await page.close().catch(err => console.error(err));
           const newPage = await browser.newPage();
 
+          /**
+           * This is where it got new and interesting...
+           *
+           * The Chrome DevTool Protocol gives hands-on access to browser
+           * internals. Currently, this is the only way to trigger a
+           * notification.
+           */
           let session = await newPage.target().createCDPSession();
           console.log('session');
           console.log(session);
 
-
-
-          // Finally got service workers to update. Seperate into new test
+          // Finally got service workers to update. Use this approach to test
+          // service worker script update in a new test
           await session.send('ServiceWorker.enable');
           await session.send('ServiceWorker.setForceUpdateOnPageLoad', {forceUpdateOnPageLoad: true});
           session.on('ServiceWorker.workerRegistrationUpdated', async reg => {
             console.log("The service worker was updated");
             console.log(reg);
 
-            // Attach listener to worker target
-//            let targets = await session.send('Target.getTargets').catch(e => console.error(e));//, { type: 'service_worker' });
-//            console.log('session targets');
-//            //console.log(targets);
-//
-//            let sw = targets.targetInfos.find(t => t.type === 'service_worker');
-//            console.log('service worker target');
-//            console.log(sw);
-//
-//            session.on('Target.receivedMessageFromTarget', evt => {
-//              console.log('Target.receivedMessageFromTarget');
-//              console.log(evt);
-//            });
-
             /**
              * This is, so far, the only way to send an actual push message
+             *
+             * All I am able to test so far is whether the data sent is the
+             * data received. By itself, not useful beyond documenting what is
+             * known about the mechanics of notifications
              */
             let res = await session.send('ServiceWorker.deliverPushMessage', {
               registrationId: reg.registrations[0].registrationId,
@@ -526,6 +400,23 @@ describe('subscribe', () => {
             }).catch(e => console.error(e));
           });
 
+          /**
+           * I ran into a testing brickwall at this point. It is very difficult
+           * to peek at the internals of a service worker processing a `push`
+           * event. Even a convential `console.log` will not output, because
+           * push notifications do not have access to the DOM. They live in
+           * completely seperate worlds...
+           *
+           * Except for `console.error`. You can _see_ the output from a `console.error`
+           * if it comes from a service worker.
+           *
+           * At this point, I can only confirm what has been passed the worker.
+           * I cannot even stub anything inside.
+           *
+           * See how the error messages are applied in `app.js`:
+           *
+           * `app.use('/worker.js')`
+           */
           session.on('ServiceWorker.workerErrorReported', async request => {
             console.log('************************* ServiceWorker.workerErrorReported');
             console.log(request);
@@ -534,8 +425,7 @@ describe('subscribe', () => {
               let data = JSON.parse(request.errorMessage.errorMessage);
               expect(data.message).toEqual('Word.');
               if (data.message === 'Word.') {
-                testPassed = true;
-              //  done();
+                return done();
               }
             }
             catch (err) {
@@ -548,11 +438,17 @@ describe('subscribe', () => {
             console.log(msg);
           });
 
-//          newPage.on('requestfinished', (e) => {
-//            console.log('************************* page request finished');
-//            console.log(`${e.type} fired`, e.detail || '');
-//            console.log(e);
-//          });
+          /**
+           * Why not `newPage.on('dialog')`?
+           *
+           * Push notification use OS's messaging
+           *
+           * They live in a world of their own. No DOM events!
+           */
+          //newPage.on('dialog', msg => {
+          //  console.log('This will never fire');
+          //  console.log(msg);
+          //});
 
           // Which `networkidleX`? https://github.com/puppeteer/puppeteer/issues/1552#issuecomment-350954419
           // The `networkidle0` seems a little lest flaky
@@ -561,7 +457,6 @@ describe('subscribe', () => {
             timeout: 10000
           }).catch(e => {
             console.error(e);
-            //return done(e);
           });
 
 
@@ -572,14 +467,6 @@ describe('subscribe', () => {
           // it be due to an action taken in the app?
           //
           await expect(newPage).toClick('#subscribe-button', { text: 'Subscribe' }).catch(e => console.error(e));
-
-          console.log("HAS EVERYTHING SETTLED?", testPassed);
-          if (testPassed) {
-            done();
-          }
-          else {
-            done('Test failed');
-          }
         });
       });
     });
