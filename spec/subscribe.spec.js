@@ -35,7 +35,6 @@ const APP_URL = `http://localhost:${PORT}`
 
 describe('subscribe', () => {
 
-
   afterAll(done => {
     app.close(done);
   });
@@ -63,9 +62,6 @@ describe('subscribe', () => {
           auth: process.env.PRIVATE_VAPID_KEY,
         }
       };
-
-
-
     });
 
     it('returns 201 with JSON', done => {
@@ -250,17 +246,29 @@ describe('subscribe', () => {
         await context.overridePermissions(APP_URL, ['notifications']);
       });
 
-      beforeEach(async () => {
-//        await page.goto(APP_URL, {
-//          waitUntil: 'networkidle2',
-//          timeout: 10000
-//        });
-      });
-
       describe('successfully', () => {
 
-        it('lands in the right place', async() => {
-          await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
+        beforeEach(async () => {
+          // Which `networkidleX`? https://github.com/puppeteer/puppeteer/issues/1552#issuecomment-350954419
+          // The `networkidle0` seems a little lest flaky
+          await page.goto(APP_URL, {
+            waitUntil: 'networkidle0',
+            timeout: 10000
+          }).catch(e => {
+            console.error(e);
+          });
+
+
+  ////        await page.goto(APP_URL, {
+  ////          waitUntil: 'networkidle2',
+  ////          timeout: 10000
+  ////        });
+        });
+
+
+
+        it('lands in the right place', async () => {
+          await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });//.catch(e => console.error(e));
           expect(page.url()).toEqual(APP_URL + '/');
         });
 
@@ -299,146 +307,150 @@ describe('subscribe', () => {
         //});
 
         it('shows a waiting-for-subscription-confirmation message', async () => {
+          console.log('THE TEST IS STARTING');
           await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
+          console.log('WAITING FOR ALERT');
           await page.waitForSelector('.alert');
           await expect(page).toMatchElement('.messages .alert.alert-info', 'Waiting for subscription confirmation...');
         });
 
         /**
-         * This might not be possible drectly, because he alert comes from the
+         * This might not be possible drectly, because the alert comes from the
          * OS notification system
          */
-        it('receives a successfully-subscribed push message', async done => {
-//          let session;
-//          browser.on('targetcreated', async (target) => {
-//            console.log('Target created');
-//            page = await target.page();
-//            await initializeCDP(page);
-//            session = await page.target().createCDPSession();
-//          });
-
-          let session = await page.target().createCDPSession();
-          console.log('CDP session');
-          console.log(session);
-
-
-
-          /**
-           * 2021-1-19 https://jsoverson.medium.com/using-chrome-devtools-protocol-with-puppeteer-737a1300bac0
-           *
-           * This isn't particularly useful, though it does show the CDP stuff
-           * does actually work (run tests in development mode to see the event
-           * fire).
-           *
-           * Now how to make it work for notifications...
-           */
-          //await session.send('Network.enable');
-          //await session.send('Network.setRequestInterception', { patterns: [
-          //  {
-          //    urlPattern: '*',
-          //    resourceType: 'Script',
-          //    interceptionStage: 'HeadersReceived'
-          //  }
-          //]});
-
-          //session.on('Network.requestIntercepted', ({ interceptionId }) => {
-          //  console.log("NETWORK CONNECTION INTERCEPTED");
-          //  session.send('Network.continueInterceptedRequest', {
-          //    interceptionId,
-          //  });
-          //});
-
-          /**
-           * This is the stuff I'm interested in...
-           */
-          // Finally got service workers to update. Seperate into new test
-          await session.send('ServiceWorker.enable');
-//          await session.send('ServiceWorker.stopAllWorkers');
-          await session.send('ServiceWorker.setForceUpdateOnPageLoad', {forceUpdateOnPageLoad: true});
-          session.on('ServiceWorker.workerRegistrationUpdated', async reg => {
-            console.log("The service worker was updated");
-            console.log(reg);
-            await session.send('ServiceWorker.startWorker', { scopeURL: reg.registrations[0].scopeURL });
-//            let res  = await session.send('ServiceWorker.inspectWorker', { versionId: reg.registrations[0].registrationId });
-//            console.log(res);
-
-            const dialog = await expect(page).toDisplayDialog(async () => {
-              console.log("Inside DIALOG expect block");
-              //await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
-
-              // Try triggering the push event
-              try {
-                let res = await session.send('ServiceWorker.deliverPushMessage', {
-                  registrationId: reg.registrations[0].registrationId,
-                  origin: reg.registrations[0].scopeURL,
-                  data: JSON.stringify({ message: "Word." })
-                });
-                console.log('Push triggered');
-                console.log(res);
-              }
-              catch (err) {
-                console.error(err);
-              };
-
-            });
-
-            console.log('dialog');
-            console.log(dialog);
-
-          });
-          session.on('ServiceWorker.onmessage', async reg => {
-            console.log('************************* A long shot');
-          });
-
-          //
-//          await session.send('Runtime.enable');
-//          session.on('Runtime.consoleAPICalled', async reg => {
-//            console.log('************************* Runtime.consoleAPICalled');
+//        it('receives a successfully-subscribed push message', async done => {
+////          let session;
+////          browser.on('targetcreated', async (target) => {
+////            console.log('Target created');
+////            page = await target.page();
+////            await initializeCDP(page);
+////            session = await page.target().createCDPSession();
+////          });
+//
+//          let session = await page.target().createCDPSession();
+//          console.log('CDP session');
+//          console.log(session);
+//
+//
+//
+//          /**
+//           * 2021-1-19 https://jsoverson.medium.com/using-chrome-devtools-protocol-with-puppeteer-737a1300bac0
+//           *
+//           * This isn't particularly useful, though it does show the CDP stuff
+//           * does actually work (run tests in development mode to see the event
+//           * fire).
+//           *
+//           * Now how to make it work for notifications...
+//           */
+//          //await session.send('Network.enable');
+//          //await session.send('Network.setRequestInterception', { patterns: [
+//          //  {
+//          //    urlPattern: '*',
+//          //    resourceType: 'Script',
+//          //    interceptionStage: 'HeadersReceived'
+//          //  }
+//          //]});
+//
+//          //session.on('Network.requestIntercepted', ({ interceptionId }) => {
+//          //  console.log("NETWORK CONNECTION INTERCEPTED");
+//          //  session.send('Network.continueInterceptedRequest', {
+//          //    interceptionId,
+//          //  });
+//          //});
+//
+//          /**
+//           * This is the stuff I'm interested in...
+//           */
+//          // Finally got service workers to update. Seperate into new test
+//          await session.send('ServiceWorker.enable');
+////          await session.send('ServiceWorker.stopAllWorkers');
+//          await session.send('ServiceWorker.setForceUpdateOnPageLoad', {forceUpdateOnPageLoad: true});
+//          session.on('ServiceWorker.workerRegistrationUpdated', async reg => {
+//            console.log("The service worker was updated");
 //            console.log(reg);
+//            await session.send('ServiceWorker.startWorker', { scopeURL: reg.registrations[0].scopeURL });
+////            let res  = await session.send('ServiceWorker.inspectWorker', { versionId: reg.registrations[0].registrationId });
+////            console.log(res);
+//
+//            const dialog = await expect(page).toDisplayDialog(async () => {
+//              console.log("Inside DIALOG expect block");
+//              //await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
+//
+//              // Try triggering the push event
+//              try {
+//                let res = await session.send('ServiceWorker.deliverPushMessage', {
+//                  registrationId: reg.registrations[0].registrationId,
+//                  origin: reg.registrations[0].scopeURL,
+//                  data: JSON.stringify({ message: "Word." })
+//                });
+//                console.log('Push triggered');
+//                console.log(res);
+//              }
+//              catch (err) {
+//                console.error(err);
+//              };
+//
+//            });
+//
+//            console.log('dialog');
+//            console.log(dialog);
+//
 //          });
+//          session.on('ServiceWorker.onmessage', async reg => {
+//            console.log('************************* A long shot');
+//          });
+//
+//          //
+////          await session.send('Runtime.enable');
+////          session.on('Runtime.consoleAPICalled', async reg => {
+////            console.log('************************* Runtime.consoleAPICalled');
+////            console.log(reg);
+////          });
+//
+//
+//
+////          await session.send('BackgroundService.clearEvents', {service: 'notifications'});
+////          await session.send('BackgroundService.setRecording', {shouldRecord: true, service: 'notifications'});
+//          await session.send('BackgroundService.startObserving', {service: 'pushMessaging'});
+//
+//          session.on('BackgroundService.backgroundServiceEventReceived', dialog => {
+//            console.log("IS THIS THE SERVICE WORKER???");
+//            done();
+//          });
+//
+//          // Push notification uses OS's messaging
+//          // This will never fire
+//          page.on('dialog', dialog => {
+//            console.log('DIALOG EVENT FIRED');
+//            done();
+//          });
+//
+//          await page.goto(APP_URL, {
+//            waitUntil: 'networkidle2',
+//            timeout: 10000
+//          });
+//
+//          console.log('page');
+//          console.log(page.workers());
+//          //
+//          // What is best practices when registering service workers?
+//          //
+//          // Apart from permissions, should it be automatic registration, or should
+//          // it be due to an action taken in the app?
+//          //
+//          await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
+//
+////          await session.send('BackgroundService.clearEvents', {service: 'notifications'});
+//        });
+      });
 
-
-
-//          await session.send('BackgroundService.clearEvents', {service: 'notifications'});
-//          await session.send('BackgroundService.setRecording', {shouldRecord: true, service: 'notifications'});
-          await session.send('BackgroundService.startObserving', {service: 'pushMessaging'});
-
-          session.on('BackgroundService.backgroundServiceEventReceived', dialog => {
-            console.log("IS THIS THE SERVICE WORKER???");
-            done();
-          });
-
-          // Push notification uses OS's messaging
-          // This will never fire
-          page.on('dialog', dialog => {
-            console.log('DIALOG EVENT FIRED');
-            done();
-          });
-
-          await page.goto(APP_URL, {
-            waitUntil: 'networkidle2',
-            timeout: 10000
-          });
-
-          console.log('page');
-          console.log(page.workers());
-          //
-          // What is best practices when registering service workers?
-          //
-          // Apart from permissions, should it be automatic registration, or should
-          // it be due to an action taken in the app?
-          //
-          await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
-
-//          await session.send('BackgroundService.clearEvents', {service: 'notifications'});
-        });
-
+      describe('push notifications', () => {
         /**
          * Push Notifications are unwieldy. This is an attempt at focusing and
          * simplifying the tests by triggering a push event and ensuring
          * the proper browser function gets fired
          */
-        it.only('triggers a notification on push event', async done => {
+        it('triggers a notification on push event', async done => {
 
           //
           // Notes for testing apologetic
@@ -472,8 +484,12 @@ describe('subscribe', () => {
           //    return 'SERVICE WORKER HERE';
           //  });
 
+          let testPassed = false;
 
-          let session = await page.target().createCDPSession();
+          //await page.close().catch(err => console.error(err));
+          const newPage = await browser.newPage();
+
+          let session = await newPage.target().createCDPSession();
           console.log('session');
           console.log(session);
 
@@ -487,30 +503,30 @@ describe('subscribe', () => {
             console.log(reg);
 
             // Attach listener to worker target
-            let targets = await session.send('Target.getTargets');//, { type: 'service_worker' });
-            console.log('session targets');
-            //console.log(targets);
-
-            let sw = targets.targetInfos.find(t => t.type === 'service_worker');
-            console.log('service worker target');
-            console.log(sw);
-
-            session.on('Target.receivedMessageFromTarget', evt => {
-              console.log('Target.receivedMessageFromTarget');
-              console.log(evt);
-            });
+//            let targets = await session.send('Target.getTargets').catch(e => console.error(e));//, { type: 'service_worker' });
+//            console.log('session targets');
+//            //console.log(targets);
+//
+//            let sw = targets.targetInfos.find(t => t.type === 'service_worker');
+//            console.log('service worker target');
+//            console.log(sw);
+//
+//            session.on('Target.receivedMessageFromTarget', evt => {
+//              console.log('Target.receivedMessageFromTarget');
+//              console.log(evt);
+//            });
 
             /**
-             * This is, so far, the only way to send an actuall push message
+             * This is, so far, the only way to send an actual push message
              */
             let res = await session.send('ServiceWorker.deliverPushMessage', {
               registrationId: reg.registrations[0].registrationId,
               origin: reg.registrations[0].scopeURL,
               data: JSON.stringify({ message: "Word." })
-            });
+            }).catch(e => console.error(e));
           });
 
-          session.on('ServiceWorker.workerErrorReported', request => {
+          session.on('ServiceWorker.workerErrorReported', async request => {
             console.log('************************* ServiceWorker.workerErrorReported');
             console.log(request);
 
@@ -518,7 +534,8 @@ describe('subscribe', () => {
               let data = JSON.parse(request.errorMessage.errorMessage);
               expect(data.message).toEqual('Word.');
               if (data.message === 'Word.') {
-                done();
+                testPassed = true;
+              //  done();
               }
             }
             catch (err) {
@@ -526,16 +543,25 @@ describe('subscribe', () => {
             }
           });
 
-          page.on('console', msg => {
+          newPage.on('console', msg => {
             console.log('************************* puppeteer console called');
             console.log(msg);
           });
 
+//          newPage.on('requestfinished', (e) => {
+//            console.log('************************* page request finished');
+//            console.log(`${e.type} fired`, e.detail || '');
+//            console.log(e);
+//          });
+
           // Which `networkidleX`? https://github.com/puppeteer/puppeteer/issues/1552#issuecomment-350954419
           // The `networkidle0` seems a little lest flaky
-          await page.goto(APP_URL, {
+          await newPage.goto(APP_URL, {
             waitUntil: 'networkidle0',
             timeout: 10000
+          }).catch(e => {
+            console.error(e);
+            //return done(e);
           });
 
 
@@ -545,7 +571,15 @@ describe('subscribe', () => {
           // Apart from permissions, should it be automatic registration, or should
           // it be due to an action taken in the app?
           //
-          await expect(page).toClick('#subscribe-button', { text: 'Subscribe' });
+          await expect(newPage).toClick('#subscribe-button', { text: 'Subscribe' }).catch(e => console.error(e));
+
+          console.log("HAS EVERYTHING SETTLED?", testPassed);
+          if (testPassed) {
+            done();
+          }
+          else {
+            done('Test failed');
+          }
         });
       });
     });
